@@ -368,6 +368,128 @@ function weekDays() {
   const mon = addDays(getMonday(today), weekOffset * 7);
   return Array.from({length:7}, (_,i) => addDays(mon, i));
 }
+// ── RENDER ──
+function render() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = weekDays();
+  const mon = days[0];
+  const isCurrentWeek = weekOffset === 0;
+
+  document.getElementById('weekLabel').textContent =
+    isCurrentWeek ? 'this week' : (weekOffset < 0 ? `${Math.abs(weekOffset)}w ago` : `${weekOffset}w ahead`);
+
+  const todayBtn = document.getElementById('todayBtn');
+  todayBtn.classList.toggle('hidden', isCurrentWeek);
+  document.getElementById('nextWeek').disabled = weekOffset >= 0;
+
+  // Grid header
+  const header = document.getElementById('gridHeader');
+  header.innerHTML = `<div class="gh-spacer"><span class="week-label">${formatRange(mon)}</span></div>`;
+  days.forEach(d => {
+    const isToday = isSameDay(d, today);
+    const col = document.createElement('div');
+    col.className = 'day-header' + (isToday ? ' is-today' : '');
+    col.innerHTML = `<span class="day-name">${DAYS[days.indexOf(d)]}</span><span class="day-num">${d.getDate()}</span>`;
+    header.appendChild(col);
+  });
+  const sh = document.createElement('div');
+  sh.className = 'streak-header';
+  sh.innerHTML = `<span>streak</span>`;
+  header.appendChild(sh);
+
+  // Habit rows
+  const list = document.getElementById('habitsList');
+  list.innerHTML = '';
+
+  if (habits.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">○</div>
+        <p class="empty-title">No habits yet</p>
+        <p class="empty-body">Add your first habit above and start building your streaks. Small steps, every day.</p>
+        <p class="empty-hint">try: "Read 30 min" · "Exercise" · "No social media"</p>
+      </div>`;
+    document.getElementById('summaryBar').style.display = 'none';
+    return;
+  }
+
+  habits.forEach(habit => {
+    const row = document.createElement('div');
+    row.className = 'habit-row';
+    row.dataset.id = habit.id;
+
+    // Name cell
+    const nameCell = document.createElement('div');
+    nameCell.className = 'habit-name-cell';
+    nameCell.innerHTML = `
+      <span class="habit-name-text" title="${escHtml(habit.name)}">${escHtml(habit.name)}</span>
+      <div class="habit-actions">
+        <button class="icon-btn edit-btn" data-id="${habit.id}" title="Rename">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9.5 1.5l2 2L4 11H2v-2L9.5 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="icon-btn danger delete-btn" data-id="${habit.id}" title="Delete">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2h3v1.5M3.5 3.5l.5 7h5l.5-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>`;
+    row.appendChild(nameCell);
+
+    // Check cells
+    days.forEach(d => {
+      const isFuture = d > today;
+      const isToday = isSameDay(d, today);
+      const checked = isChecked(d, habit.id);
+      const cell = document.createElement('div');
+      cell.className = 'check-cell' + (isToday ? ' is-today' : '') + (isFuture ? ' is-future' : '');
+      const btn = document.createElement('button');
+      btn.className = 'check-btn' + (checked ? ' checked' : '');
+      btn.disabled = isFuture;
+      btn.dataset.id = habit.id;
+      btn.dataset.date = toKey(d);
+      btn.innerHTML = checked ? `<svg class="check-icon" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>` : '';
+      cell.appendChild(btn);
+      row.appendChild(cell);
+    });
+
+    // Streak cell
+    const streak = getStreak(habit.id);
+    const sc = document.createElement('div');
+    sc.className = 'streak-cell';
+    const badge = document.createElement('span');
+    badge.className = 'streak-badge' + (streak >= 7 ? ' fire' : streak >= 3 ? ' hot' : '');
+    badge.textContent = streak > 0 ? streak + (streak >= 7 ? ' 🔥' : '') : '—';
+    sc.appendChild(badge);
+    row.appendChild(sc);
+
+    list.appendChild(row);
+  });
+
+  renderSummary(days, today);
+}
+
+function renderSummary(days, today) {
+  const bar = document.getElementById('summaryBar');
+  if (habits.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const todayChecked = habits.filter(h => isChecked(today, h.id)).length;
+  const pastDays = days.filter(d => d <= today);
+  let weekChecked = 0, weekTotal = 0;
+  pastDays.forEach(d => {
+    weekTotal += habits.length;
+    weekChecked += habits.filter(h => isChecked(d, h.id)).length;
+  });
+  const weekPct = weekTotal > 0 ? Math.round((weekChecked / weekTotal) * 100) : 0;
+  const bestStreak = habits.length > 0 ? Math.max(...habits.map(h => getStreak(h.id))) : 0;
+  bar.innerHTML = `
+    <div class="summary-stats">
+      <div class="stat"><span class="stat-val accent">${todayChecked}/${habits.length}</span><span class="stat-label">today</span></div>
+      <div class="stat"><span class="stat-val">${weekChecked}/${weekTotal}</span><span class="stat-label">this week</span></div>
+      <div class="stat"><span class="stat-val">${bestStreak}</span><span class="stat-label">best streak</span></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" style="width:${weekPct}%"></div></div>
+      <div class="progress-label">${weekPct}% of week complete</div>
+    </div>`;
+}
 </script>
 </body>
 </html>
