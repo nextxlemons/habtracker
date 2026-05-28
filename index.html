@@ -490,6 +490,77 @@ function renderSummary(days, today) {
       <div class="progress-label">${weekPct}% of week complete</div>
     </div>`;
 }
+// ── ADD ──
+function addHabit() {
+  const input = document.getElementById('habitInput');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const id = 'h' + Date.now() + Math.random().toString(36).slice(2,6);
+  habits.push({ id, name, createdAt: toKey(new Date()) });
+  save(); input.value = ''; input.focus();
+  render();
+  const rows = document.querySelectorAll('.habit-row');
+  if (rows.length) rows[rows.length-1].classList.add('habit-row-enter');
+}
+
+// ── DELETE ──
+function deleteHabit(id) {
+  const row = document.querySelector(`.habit-row[data-id="${id}"]`);
+  if (row) {
+    row.classList.add('habit-row-exit');
+    row.addEventListener('animationend', () => {
+      habits = habits.filter(h => h.id !== id);
+      save(); render();
+    }, {once:true});
+  }
+}
+
+// ── RENAME ──
+function startRename(id) {
+  const habit = habits.find(h => h.id === id);
+  if (!habit) return;
+  const nameCell = document.querySelector(`.habit-row[data-id="${id}"] .habit-name-cell`);
+  const nameText = nameCell.querySelector('.habit-name-text');
+  const input = document.createElement('input');
+  input.className = 'habit-edit-input';
+  input.value = habit.name; input.maxLength = 60;
+  nameText.replaceWith(input);
+  input.focus(); input.select();
+  function commit() {
+    const newName = input.value.trim();
+    if (newName) habit.name = newName;
+    save(); render();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') render();
+  });
+}
+
+// ── EVENTS ──
+document.getElementById('habitsList').addEventListener('click', e => {
+  const checkBtn = e.target.closest('.check-btn');
+  if (checkBtn && !checkBtn.disabled) {
+    const [y,m,d] = checkBtn.dataset.date.split('-').map(Number);
+    toggle(new Date(y, m-1, d), checkBtn.dataset.id);
+    render(); return;
+  }
+  const editBtn = e.target.closest('.edit-btn');
+  if (editBtn) { startRename(editBtn.dataset.id); return; }
+  const delBtn = e.target.closest('.delete-btn');
+  if (delBtn) { deleteHabit(delBtn.dataset.id); return; }
+});
+
+document.getElementById('addBtn').addEventListener('click', addHabit);
+document.getElementById('habitInput').addEventListener('keydown', e => { if (e.key === 'Enter') addHabit(); });
+document.getElementById('prevWeek').addEventListener('click', () => { weekOffset--; render(); });
+document.getElementById('nextWeek').addEventListener('click', () => { if (weekOffset < 0) { weekOffset++; render(); } });
+document.getElementById('todayBtn').addEventListener('click', () => { weekOffset = 0; render(); });
+
+// ── INIT ──
+load();
+render();
 </script>
 </body>
 </html>
