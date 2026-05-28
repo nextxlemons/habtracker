@@ -300,5 +300,74 @@
     </section>
 
   </div>
+
+  <script>
+// ── CONSTANTS ──
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function toKey(date) { return date.toISOString().slice(0,10); }
+function todayKey() { return toKey(new Date()); }
+function isSameDay(a, b) { return toKey(a) === toKey(b); }
+function formatRange(mon) {
+  const sun = addDays(mon, 6);
+  if (mon.getMonth() === sun.getMonth())
+    return `${MONTHS[mon.getMonth()]} ${mon.getDate()}–${sun.getDate()}, ${mon.getFullYear()}`;
+  return `${MONTHS[mon.getMonth()]} ${mon.getDate()} – ${MONTHS[sun.getMonth()]} ${sun.getDate()}, ${sun.getFullYear()}`;
+}
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── STATE ──
+let habits = [];
+let checks = {};
+let weekOffset = 0;
+
+function save() {
+  localStorage.setItem('hl_habits', JSON.stringify(habits));
+  localStorage.setItem('hl_checks', JSON.stringify(checks));
+}
+function load() {
+  try { habits = JSON.parse(localStorage.getItem('hl_habits')) || []; } catch(e) { habits = []; }
+  try { checks = JSON.parse(localStorage.getItem('hl_checks')) || {}; } catch(e) { checks = {}; }
+}
+function checkKey(date, habitId) { return `${toKey(date)}__${habitId}`; }
+function isChecked(date, habitId) { return !!checks[checkKey(date, habitId)]; }
+function toggle(date, habitId) {
+  const k = checkKey(date, habitId);
+  if (checks[k]) delete checks[k]; else checks[k] = true;
+  save();
+}
+function getStreak(habitId) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  let cursor = new Date(today);
+  let streak = 0;
+  if (!isChecked(cursor, habitId)) cursor = addDays(cursor, -1);
+  for (let i = 0; i < 365; i++) {
+    if (isChecked(cursor, habitId)) { streak++; cursor = addDays(cursor, -1); }
+    else break;
+  }
+  return streak;
+}
+function weekDays() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const mon = addDays(getMonday(today), weekOffset * 7);
+  return Array.from({length:7}, (_,i) => addDays(mon, i));
+}
+</script>
 </body>
 </html>
