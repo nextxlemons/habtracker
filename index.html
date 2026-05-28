@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>habtracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="shell">
+
+    <header class="header">
+      <div class="header-left">
+        <h1 class="wordmark">hab<em>tracker</em></h1>
+        <p class="sub" id="weekLabel">—</p>
+      </div>
+      <nav class="week-nav">
+        <button class="nav-btn" id="prevWeek">&#8592;</button>
+        <button class="today-btn hidden" id="todayBtn">↩ this week</button>
+        <button class="nav-btn" id="nextWeek">&#8594;</button>
+      </nav>
+    </header>
+
+    <div class="add-row">
+      <input class="add-input" id="habitInput" type="text" placeholder="New habit — e.g. Read 30 min, Exercise…" maxlength="60" autocomplete="off" />
+      <button class="add-btn" id="addBtn">+ Add</button>
+    </div>
+
+    <section class="grid-section">
+      <div class="grid-scroll">
+        <div class="grid-inner">
+          <div class="grid-header" id="gridHeader"></div>
+          <div id="habitsList"></div>
+        </div>
+      </div>
+      <div id="summaryBar" class="summary-bar" style="display:none"></div>
+    </section>
+
+  </div>
+</body>
+</html>
